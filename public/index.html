@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#09111f" />
+    <title>Jokemaster</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <div class="backdrop">
+      <div class="blob blob-a"></div>
+      <div class="blob blob-b"></div>
+      <div class="grid"></div>
+    </div>
+
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">One joke. Three judges. Ten-second intervals.</p>
+          <h1>Jokemaster</h1>
+          <p class="lede">
+            Generate a fresh joke, then watch three unruly AI judges score it one by one.
+            The final score is the average of the three takes.
+          </p>
+        </div>
+        <button id="generate-button" class="primary" type="button">
+          Generate Joke
+        </button>
+      </section>
+
+      <section class="deck">
+        <article class="panel joke-panel">
+          <div class="panel-head">
+            <p class="panel-label">Fresh joke</p>
+            <div id="status-chip" class="chip">Idle</div>
+          </div>
+          <p id="topic-line" class="topic-line">Press generate to start.</p>
+          <div class="joke-box">
+            <p id="joke-text" class="joke-text">Your joke will appear here.</p>
+          </div>
+          <div class="meter">
+            <div id="meter-fill" class="meter-fill"></div>
+          </div>
+          <div class="meter-caption">
+            <span id="countdown-label">Waiting for a joke...</span>
+            <span id="final-score-label">Score: -</span>
+          </div>
+        </article>
+
+        <aside class="panel judges-panel">
+          <div class="panel-head">
+            <p class="panel-label">AI judges</p>
+            <p class="panel-sub">Revealed every 10 seconds</p>
+          </div>
+
+          <div id="judges" class="judge-list">
+            <article class="judge-card" data-judge="mara">
+              <div class="judge-top">
+                <div>
+                  <h2>Mara Voss</h2>
+                  <p>Deadpan Copy Editor</p>
+                </div>
+                <strong class="judge-score">--</strong>
+              </div>
+              <p class="judge-reveal">Waiting for review.</p>
+            </article>
+            <article class="judge-card" data-judge="dex">
+              <div class="judge-top">
+                <div>
+                  <h2>Dex Marlow</h2>
+                  <p>Crowd-pleaser Host</p>
+                </div>
+                <strong class="judge-score">--</strong>
+              </div>
+              <p class="judge-reveal">Waiting for review.</p>
+            </article>
+            <article class="judge-card" data-judge="nina">
+              <div class="judge-top">
+                <div>
+                  <h2>Dr. Nina Vale</h2>
+                  <p>Ruthless Joke Professor</p>
+                </div>
+                <strong class="judge-score">--</strong>
+              </div>
+              <p class="judge-reveal">Waiting for review.</p>
+            </article>
+          </div>
+        </aside>
+      </section>
+
+      <section class="panel summary-panel">
+        <div class="panel-head">
+          <p class="panel-label">Final status</p>
+          <p class="panel-sub">After judge three, the score is locked</p>
+        </div>
+        <div class="summary-grid">
+          <div>
+            <span>Average score</span>
+            <strong id="average-score">--</strong>
+          </div>
+          <div>
+            <span>Verdict</span>
+            <strong id="verdict-text">Waiting</strong>
+          </div>
+        </div>
+        <p id="status-copy" class="status-copy">
+          Generate a joke to begin the evaluation cycle.
+        </p>
+        <button id="again-button" class="secondary hidden" type="button">
+          Generate Another Joke
+        </button>
+      </section>
+    </main>
+  </body>
+</html>
