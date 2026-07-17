@@ -121,6 +121,76 @@ h1 {
   line-height: 1.6;
 }
 
+.control-stack {
+  display: grid;
+  gap: 0.85rem;
+  max-width: 34rem;
+  margin-top: 1.2rem;
+  padding: 1rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.field span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.field strong {
+  color: var(--accent-3);
+  font-weight: 700;
+}
+
+.field input[type="text"] {
+  width: 100%;
+  padding: 0.95rem 1rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  background: rgba(5, 10, 18, 0.6);
+  outline: none;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.field input[type="text"]::placeholder {
+  color: rgba(158, 176, 203, 0.7);
+}
+
+.field input[type="text"]:focus {
+  border-color: rgba(111, 246, 209, 0.55);
+  box-shadow: 0 0 0 4px rgba(111, 246, 209, 0.12);
+}
+
+.field-slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .panel,
 .primary,
 .secondary {
@@ -324,5 +394,9 @@ h1 {
 
   .hero {
     align-items: start;
+  }
+
+  .control-stack {
+    max-width: none;
   }
 }

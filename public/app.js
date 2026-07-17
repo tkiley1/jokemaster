@@ -33,6 +33,9 @@ const state = {
 
 const generateButton = $("#generate-button");
 const againButton = $("#again-button");
+const topicInput = $("#topic-input");
+const nsfwSlider = $("#nsfw-slider");
+const nsfwValue = $("#nsfw-value");
 const statusChip = $("#status-chip");
 const topicLine = $("#topic-line");
 const jokeText = $("#joke-text");
@@ -79,6 +82,14 @@ function setJudgeCard(judgeId, result) {
   node.classList.add("revealed");
   node.querySelector(".judge-score").textContent = String(result.score);
   node.querySelector(".judge-reveal").textContent = `${result.label}. ${result.review}`;
+}
+
+function nsfwDescriptor(value) {
+  if (value < 20) return "Clean";
+  if (value < 45) return "Cheeky";
+  if (value < 70) return "Spicy";
+  if (value < 90) return "Unfiltered";
+  return "Wild";
 }
 
 async function postJson(url, payload) {
@@ -131,6 +142,8 @@ function finishRound() {
   againButton.classList.remove("hidden");
   generateButton.textContent = "Generate Another Joke";
   generateButton.disabled = false;
+  topicInput.disabled = false;
+  nsfwSlider.disabled = false;
   setChip("Round complete");
   state.active = false;
 }
@@ -142,6 +155,7 @@ async function revealJudge(index) {
   const result = await postJson("/api/judge", {
     joke: state.joke.joke,
     judgeId: judge.id,
+    nsfwLevel: state.joke.nsfwLevel,
   });
   state.judges[judge.id] = result;
   setJudgeCard(judge.id, result);
@@ -174,14 +188,18 @@ async function startRound() {
   againButton.classList.add("hidden");
 
   try {
-    const joke = await postJson("/api/joke", {});
+    const topic = topicInput.value.trim();
+    const nsfwLevel = Number.parseInt(nsfwSlider.value, 10) || 0;
+    const joke = await postJson("/api/joke", { topic, nsfwLevel });
     if (!state.active) return;
     state.joke = joke;
-    topicLine.textContent = `Topic: ${joke.topic}`;
+    topicLine.textContent = `Topic: ${joke.topic} · Spice: ${nsfwDescriptor(nsfwLevel)}`;
     jokeText.textContent = joke.joke;
     setChip(joke.source === "claude" ? "Haiku-generated" : "Demo fallback");
     statusCopy.textContent = "The first judge arrives in 10 seconds. Then the pressure rises.";
     generateButton.textContent = "Judging in progress";
+    topicInput.disabled = true;
+    nsfwSlider.disabled = true;
     startCountdown();
 
     [10_000, 20_000, 30_000].forEach((delay, index) => {
@@ -200,6 +218,8 @@ async function startRound() {
     setChip("Error");
     statusCopy.textContent = error.message;
     generateButton.disabled = false;
+    topicInput.disabled = false;
+    nsfwSlider.disabled = false;
     state.active = false;
     generateButton.textContent = "Generate Joke";
     countdownLabel.textContent = "Waiting for a joke...";
@@ -210,7 +230,15 @@ generateButton.addEventListener("click", startRound);
 againButton.addEventListener("click", () => {
   generateButton.disabled = false;
   generateButton.textContent = "Generate Another Joke";
+  topicInput.disabled = false;
+  nsfwSlider.disabled = false;
   startRound();
 });
 
+nsfwSlider.addEventListener("input", () => {
+  nsfwValue.textContent = nsfwDescriptor(Number.parseInt(nsfwSlider.value, 10) || 0);
+});
+
 window.addEventListener("beforeunload", clearTimers);
+
+nsfwValue.textContent = nsfwDescriptor(Number.parseInt(nsfwSlider.value, 10) || 0);

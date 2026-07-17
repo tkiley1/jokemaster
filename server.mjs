@@ -53,6 +53,37 @@ const fallbackTopics = [
   "park benches",
 ];
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeTopic(topic) {
+  const cleaned = String(topic ?? "").trim().replace(/\s+/g, " ");
+  return cleaned.slice(0, 80);
+}
+
+function normalizeNsfwLevel(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) return 18;
+  return clamp(parsed, 0, 100);
+}
+
+function nsfwTone(level) {
+  if (level < 20) {
+    return "clean, work-safe, and broadly friendly.";
+  }
+  if (level < 45) {
+    return "lightly cheeky with a wink, but still safe for most settings.";
+  }
+  if (level < 70) {
+    return "more irreverent and a little risqué, but avoid explicit sexual content, hate, or graphic violence.";
+  }
+  if (level < 90) {
+    return "very edgy and adult-coded, but still not explicit, hateful, or graphic.";
+  }
+  return "as daring as possible without becoming explicit, hateful, or graphic.";
+}
+
 const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
@@ -148,60 +179,82 @@ async function callClaude({ system, user, maxTokens = 420, temperature = 0.8 }) 
   return { data, text };
 }
 
-function buildFallbackJoke() {
-  const topic = fallbackTopics[Math.floor(Math.random() * fallbackTopics.length)];
+function buildFallbackJoke(topic, nsfwLevel) {
+  const resolvedTopic = topic || fallbackTopics[Math.floor(Math.random() * fallbackTopics.length)];
   const openers = [
-    `I asked ${topic} for advice,`,
-    `My ${topic} tried to help me,`,
-    `I brought my confidence to ${topic},`,
+    `I asked ${resolvedTopic} for advice,`,
+    `My ${resolvedTopic} tried to help me,`,
+    `I brought my confidence to ${resolvedTopic},`,
   ];
-  const punchlines = [
+  const cleanPunchlines = [
     "and somehow it still had a better exit strategy than I did.",
     "but it immediately became a side quest with poor reviews.",
     "and now we both need a manager.",
   ];
+  const cheekyPunchlines = [
+    "and somehow it still had a better exit strategy than I did.",
+    "but it immediately became a side quest with poor reviews.",
+    "and now we both need a manager.",
+  ];
+  const spicyPunchlines = [
+    "and the situation got a little too confident for a weekday.",
+    "which is how I discovered my standards have a sense of humor.",
+    "and the aftermath required fewer witnesses than expected.",
+  ];
   const opener = openers[Math.floor(Math.random() * openers.length)];
-  const punchline = punchlines[Math.floor(Math.random() * punchlines.length)];
+  const pool = nsfwLevel < 20 ? cleanPunchlines : nsfwLevel < 70 ? cheekyPunchlines : spicyPunchlines;
+  const punchline = pool[Math.floor(Math.random() * pool.length)];
   return {
-    topic,
+    topic: resolvedTopic,
     setup: opener,
     punchline,
     joke: `${opener} ${punchline}`,
   };
 }
 
-async function generateJoke() {
+async function generateJoke(body = {}) {
+  const requestedTopic = normalizeTopic(body.topic);
+  const nsfwLevel = normalizeNsfwLevel(body.nsfwLevel);
+  const topic = requestedTopic || fallbackTopics[Math.floor(Math.random() * fallbackTopics.length)];
   const system = [
     "You write short, original jokes for a playful web app.",
     "Return only valid JSON with keys: topic, setup, punchline, joke.",
-    "The joke should be one or two sentences, clean, and broadly funny.",
+    `The joke topic is: ${topic}.`,
+    `The requested tone is: ${nsfwTone(nsfwLevel)}`,
+    "The joke should be one or two sentences and broadly funny.",
     "Avoid explaining the joke. Avoid references to real people or protected traits.",
   ].join(" ");
 
-  const user = "Write one fresh joke about an everyday situation with a sharp punchline.";
+  const user = [
+    `Write one fresh joke about: ${topic}.`,
+    `Respect this tone setting: ${nsfwTone(nsfwLevel)}`,
+    "Return JSON only.",
+  ].join("\n");
 
   try {
     const { text } = await callClaude({ system, user, maxTokens: 300, temperature: 0.95 });
     const joke = extractJson(text);
     return {
-      topic: String(joke.topic ?? "everyday life"),
+      topic: String(joke.topic ?? topic),
       setup: String(joke.setup ?? "").trim(),
       punchline: String(joke.punchline ?? "").trim(),
       joke: String(joke.joke ?? "").trim(),
       source: "claude",
+      nsfwLevel,
     };
   } catch {
-    const fallback = buildFallbackJoke();
-    return { ...fallback, source: "fallback" };
+    const fallback = buildFallbackJoke(topic, nsfwLevel);
+    return { ...fallback, source: "fallback", nsfwLevel };
   }
 }
 
-async function judgeJoke(joke, profile) {
+async function judgeJoke(joke, profile, nsfwLevel = 18) {
   const system = [
     `You are ${profile.name}, ${profile.title}.`,
     profile.vibe,
     profile.rubric,
     "You are judging a joke on a 1-100 scale.",
+    `The joke was requested with an NSFW setting of ${nsfwLevel}/100.`,
     "Return only valid JSON with keys: score, review, label.",
     "The review should be 1-2 sentences, distinct in voice, and specific.",
     "Do not mention policy, instructions, or that you are an AI model.",
@@ -244,8 +297,9 @@ async function judgeJoke(joke, profile) {
   }
 }
 
-async function handleApiJoke(res) {
-  const joke = await generateJoke();
+async function handleApiJoke(req, res) {
+  const body = await readBody(req);
+  const joke = await generateJoke(body);
   sendJson(res, 200, joke);
 }
 
@@ -253,6 +307,7 @@ async function handleApiJudge(req, res) {
   const body = await readBody(req);
   const joke = String(body.joke ?? "").trim();
   const judgeId = String(body.judgeId ?? "").trim();
+  const nsfwLevel = normalizeNsfwLevel(body.nsfwLevel);
   const profile = judgeProfiles.find((entry) => entry.id === judgeId);
 
   if (!joke) {
@@ -264,7 +319,7 @@ async function handleApiJudge(req, res) {
     return;
   }
 
-  const result = await judgeJoke(joke, profile);
+  const result = await judgeJoke(joke, profile, nsfwLevel);
   sendJson(res, 200, result);
 }
 
@@ -289,7 +344,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (req.method === "POST" && pathname === "/api/joke") {
-    await handleApiJoke(res);
+    await handleApiJoke(req, res);
     return;
   }
   if (req.method === "POST" && pathname === "/api/judge") {
